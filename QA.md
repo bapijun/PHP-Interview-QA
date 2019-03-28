@@ -317,23 +317,32 @@
 
 ### echo、print、print_r、var_dump 的区别
 
-> echo：输出一个或多个字符串
+> echo：输出一个或多个字符串 语言构造器而不是一个函数
 
-> print：输出字符串
+> print：输出字符串  print 实际上不是函数（而是语言结构）
 
-> print_r：打印关于变量的易于理解的信息
+> print_r：打印关于变量的易于理解的信息 函数
 
 > var_dump：打印关于变量的易于理解的信息(带类型)
-
+函数
 ### 单引号和双引号的区别
 
-> 双引号可以被分析器解析，单引号则不行
+> 双引号可以被分析器解析，处理一系列转义字符,但是不包含单引号
+单引号则不行,除了单引号和反斜线之外不处理其他转义支付
 
 ### isset 和 empty 的区别
 
 > isset：检测变量是否已设置并且非 NULL
 
-> empty：判断变量是否为空，变量为 0/false 也会被认为是空；变量不存在，不会产生警告
+> empty：当var存在，并且是一个非空非零的值时返回 FALSE 否则返回 TRUE.；变量不存在，不会产生警告.
+以下的东西被认为是空的：
+
+- "" (空字符串)
+- 0 (作为整数的0) 0.0 (作为浮点数的0) "0" (作为字符串的0)
+- NULL
+- FALSE
+- array() (一个空数组)
+- $var; (一个声明了，但是没有值的变量)
 
 ### static、self、$this 的区别
 
@@ -349,13 +358,24 @@
 
 > include_once 语句在脚本执行期间包含并运行指定文件。此行为和 include 语句类似，唯一区别是如果该文件中已经被包含过，则不会再次包含。如同此语句名字暗示的那样，只会包含一次
 
+> 通常情况我建议大家使用require_once
+
 ### 数组处理函数
+> 常用的数组处理函数
+explode implode 数组和字符串转换
+sort ksort rsort asort排序系的函数,对于的usort自定义的排序数组.其他基本是上面首字母的排列组合
+array_push array_pop 栈系列的函数
+array_map 为数组的每个元素应用回调函数
+count sizeof 计算数组的大小
+
 
 ### Cookie 和 Session
 
 > Cookie：PHP 透明的支持 HTTP cookie 。cookie 是一种远程浏览器端存储数据并以此来跟踪和识别用户的机制
 
-> Session：会话机制(Session)在 PHP 中用于保持用户连续访问Web应用时的相关数据
+> Session：会话机制(Session)用于保持用户连续访问Web应用时的相关数据.
+>session放置于服务端,cookie放置于客户端
+session的常见实现要借助cookie来发送sessionID,在实现禁用cookie情况下实现session也可以吧sessionID放置在get请求中
 
 ### 预定义变量
 
@@ -398,6 +418,7 @@ $argv — 传递给脚本的参数数组
 ### 魔术方法
 
 > \_\_construct()， \_\_destruct()， \_\_call()， \_\_callStatic()， \_\_get()， \_\_set()， \_\_isset()， \_\_unset()， \_\_sleep()， \_\_wakeup()， \_\_toString()， \_\_invoke() 等方法在 PHP 中被称为"魔术方法"（Magic methods）
+建议阅读该[博客](https://learnku.com/articles/4404/talking-about-the-magic-method-of-php-and-its-application)
 
 ### public、protected、private、final 区别
 
@@ -417,7 +438,7 @@ $argv — 传递给脚本的参数数组
 
 ### PHP 不实例化调用方法
 
-> 使用 PHP 反射方式
+> 使用 PHP 反射方式,通过反射类获取对应的构造函数予以实现
 
 ### php.ini 配置选项，ini_set 动态设置
 
@@ -499,11 +520,11 @@ $pdo = null;
 > MySQLi：是 MySQL 函数的增强改进版，提供过程化和面向对象两种风格的 API，增加了预编译和参数绑定等新的特性
 
 > PDO：从语法上讲，PDO 更接近 MySQLi
-
+强烈建议使用pdo
 ### MySQL 连接池
 
 ### 代码执行过程
-
+> 在fpm模式下,当请求过来时，master会传递给一个worker，然后立即可以接受下一个请求
 > PHP 代码 => 启动 php 及 zend 引擎，加载注册拓展模块 => 对代码进行词法/语法分析 => 编译成opcode(opcache) => 执行 opcode
 
 > 当前作用域分配内存，充当运行栈，局部变量分配在当前栈，函数调用时压栈，返回时出栈
@@ -515,6 +536,10 @@ $pdo = null;
 ### ip2long 实现
 
 ![ip2long](./assets/php-ip2long.png)
+++++在实际的代码中采用分拆后右移位之后并运算.如下代码所示
+ unsigned int ip_long = (d << 24) | (c << 16) | (n << 8) | a;
+
+因为PHP的 integer 类型是有符号，并且有许多的IP地址讲导致在32位系统的情况下为负数， 你需要使用 "%u" 进行转换
 
 ### MVC 的理解
 
@@ -827,7 +852,7 @@ $ phpize $ ./configure $ make && make install
 
 > 2.可以应用margin/padding
 
-> 3.在没有设置高度的情况下会扩展高度以包含常规流中的子元素 
+> 3.在没有设置高度的情况下会扩展高度以包含常规流中的子元素
 
 > 4.处于常规流中时布局时在前后元素位置之间（独占一个水平空间）
 
@@ -1059,7 +1084,12 @@ Slow log(有什么用，什么时候需要)
 ## 安全
 
 ### CSRF 攻击？请描述一个实例
+跨站请求伪造
+　1、客户端必须一个网站并生成cookie凭证存储在浏览器中
 
+　　2、该cookie没有清除，客户端又tab一个页面进行访问别的网站
+
+防御的方法使用csrf的token机制进行防御.
 ### XSS 攻击
 
 ### SQL 注入
