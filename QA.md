@@ -126,11 +126,22 @@
 
 ### 建立 socket 需要哪些步骤
 
-### TCP socket 和 UNIX socket 区别
+对于服务器端可以,需要建立socket,然后bind端口,然后listen端口,等到文件提示符变为已连接描述符,之后进行等待响应.
+然后客户端建立socket,与服务端进行请求(connect),这时候等待的正在监听的服务器进程开始accept,描述符状态变为已连接,socket建立完成.
 
-### 本地 socket 与 网络 socket
+![三次握手](./assets/socket-three-handsake.png)
+
+### TCP socket 和 UNIX socket 区别
+socket API原本是为网络通讯设计的，但后来在socket的框架上发展出一种IPC机制，就是UNIX Domain Socket。
+虽然网络socket也可用于同一台主机的进程间通讯（通过loopback地址127.0.0.1），
+但是UNIX Domain Socket用于IPC更有效率：不需要经过网络协议栈，不需要打包拆包、计算校验和、维护序号和应答等，只是将应用层数据从一个进程拷贝到另一个进程。
+UNIX域套接字与TCP套接字相比较，在同一台主机的传输速度前者是后者的两倍。
+这是因为，IPC机制本质上是可靠的通讯，而网络协议是为不可靠的通讯设计的。
+UNIX Domain Socket也提供面向流和面向数据包两种API接口，类似于TCP和UDP，但是面向消息的UNIX Domain Socket也是可靠的
 
 ### socket 如何实现多进程之间通信的
+
+请查看该[博客](https://www.ibm.com/developerworks/cn/linux/l-socket-ipc/index.html)
 
 ### HTTP 状态码
 
@@ -180,10 +191,15 @@
 |GET|POST|
 |-|-|
 |后退按钮/刷新无害|数据会被重新提交|
-|数据长度限制/URL长度2048字符|长度无限制|
-|数据可见/安全性差|不可见/更安全|
+|GET的长度受限于url的长度|POST起限制作用的是服务器的处理程序的处理能力|
 |可以被缓存|不可以被缓存|
-|书签可收藏|书签不可收藏|
+|位于url中|位于请求体中|
+|GET幂等|POST不幂等|
+- 核心区别只有一个,那就是语义上面的区别post和get的语义区别.GET用于信息获取，而且应该是安全的和幂等的
+- 幂等的意味着对同一URL的多个请求应该返回同样的结果.上面这些东西也是RCF规定的最初的核心区别,剩下的东西都是浏览器和服务器针对这两种语义进行的通用处理.
+- 如果一个方法的语义在本质上是「只读」的，那么这个方法就是安全的。客户端向服务端的资源发起的请求如果使用了是安全的方法，就不应该引起服务端任何的状态变化，因此也是无害的。 此RFC定义，GET, HEAD, OPTIONS 和 TRACE 这几个方法是安全的
+
+- 上面提出的get限制长度是一种不正确的解读,协议本身是没有规定get的长度,这种限制往往是浏览器和服务器自身规定的,在新版的浏览器通常不会再限制请求.
 
 ### HTTP 优缺点
 
@@ -194,6 +210,7 @@
 ### HTTPS 通信原理
 
 ![《图解HTTP》-HTTPS通信原理](./assets/net-https.png)
+
 
 ### HTTP 2.0
 
@@ -334,7 +351,7 @@
 
 > isset：检测变量是否已设置并且非 NULL
 
-> empty：当var存在，并且是一个非空非零的值时返回 FALSE 否则返回 TRUE.；变量不存在，不会产生警告.
+> empty：当var存在，并且是一个非空非零的值时返回 FALSE 否则返回 TRUE.变量不存在，不会产生警告.
 以下的东西被认为是空的：
 
 - "" (空字符串)
@@ -346,9 +363,10 @@
 
 ### static、self、$this 的区别
 
-> static：static 可以用于静态或非静态方法中，也可以访问类的静态属性、静态方法、常量和非静态方法，但不能访问非静态属性
+> static：static 可以用于静态或非静态方法中，也可以访问类的静态属性、静态方法、常量和非静态方法，但不能访问非静态属性.声明类属性或方法为静态，就可以不实例化类而直接访问。静态属性不能通过一个类已实例化的对象来访问
+> 注意使用static::访问时属于后期静态绑定的方法,static:: 不再被解析为定义当前方法所在的类，而是在实际运行时计算的。也可以称之为“静态绑定”，因为它可以用于（但不限于）静态方法的调用
 
-> self：可以用于访问类的静态属性、静态方法和常量，但 self 指向的是当前定义所在的类，这是 self 的限制
+> self：可以用于访问类的静态属性、静态方法和常量，使用 self:: 或者 __CLASS__ 对当前类的静态引用，取决于定义当前方法所在的类
 
 > $this：指向的是实际调用时的对象，也就是说，实际运行过程中，谁调用了类的属性或方法，$this 指向的就是哪个对象。但 $this 不能访问类的静态属性和常量，且 $this 不能存在于静态方法中
 
@@ -371,11 +389,10 @@ count sizeof 计算数组的大小
 
 ### Cookie 和 Session
 
-> Cookie：PHP 透明的支持 HTTP cookie 。cookie 是一种远程浏览器端存储数据并以此来跟踪和识别用户的机制
+> Cookie：PHP 透明的支持 HTTP cookie 。cookie 是一种远程浏览器端存储数据并以此来跟踪和识别用户的机制.使用set-cookie头(响应头)和cookie头(请求头)进行控制
 
 > Session：会话机制(Session)用于保持用户连续访问Web应用时的相关数据.
->session放置于服务端,cookie放置于客户端
-session的常见实现要借助cookie来发送sessionID,在实现禁用cookie情况下实现session也可以吧sessionID放置在get请求中
+> session放置于服务端,cookie放置于客户端 session的常见实现要借助cookie来发送sessionID,在实现禁用cookie情况下实现session也可以吧sessionID放置在get请求中
 
 ### 预定义变量
 
@@ -462,6 +479,8 @@ header('HTTP/1.1 301 Moved Permanently');
 header('Location: https://blog.maplemark.cn');
 ```
 
+> 在服务器中也可以设置. nginx的rewrite
+
 ### PHP 与 MySQL 连接方式
 
 - MySQL
@@ -515,7 +534,6 @@ $pdo = null;
 
 ### MySQL、MySQLi、PDO 区别
 
-> MySQL：最常用，是过程式风格的一组应用
 
 > MySQLi：是 MySQL 函数的增强改进版，提供过程化和面向对象两种风格的 API，增加了预编译和参数绑定等新的特性
 
@@ -536,7 +554,7 @@ $pdo = null;
 ### ip2long 实现
 
 ![ip2long](./assets/php-ip2long.png)
-++++在实际的代码中采用分拆后右移位之后并运算.如下代码所示
+在实际的代码中采用分拆后右移位之后并运算.如下代码所示
  unsigned int ip_long = (d << 24) | (c << 16) | (n << 8) | a;
 
 因为PHP的 integer 类型是有符号，并且有许多的IP地址讲导致在32位系统的情况下为负数， 你需要使用 "%u" 进行转换
@@ -623,6 +641,9 @@ $pdo = null;
 
 > 类定义一个内置变量，让类中其他定义方法可访问到
 
+> 使用魔术方法 \__call \__callStatic
+
+> 使用魔术方法 \__call \__callStatic
 ### 异常处理
 
 > set_exception_handler — 设置用户自定义的异常处理函数
@@ -670,7 +691,7 @@ if (!$fp) {
 
 ### 弱类型变量如何实现
 
-> PHP 中声明的变量，在 zend 引擎中都是用结构体 zval 来保存，通过共同体实现弱类型变量声明
+> PHP 中声明的变量，在 zend 引擎中都是用结构体 zval 来保存，通过union实现弱类型变量声明
 
 ### PHP 拓展初始化
 
@@ -694,7 +715,9 @@ $ phpize $ ./configure $ make && make install
 
 ### 垃圾回收机制
 
-> 引用计数器
+> 引用计数器与写时拷贝两套机制
+> php维护一个根缓存区.把所有可能根(possible roots 都是zval变量容器),放在根缓冲区(root buffer)中(用紫色来标记，称为疑似垃圾)，这样可以同时确保每个可能的垃圾根(possible garbage root)在缓冲区中只出现一次。仅仅在根缓冲区满了时，才对缓冲区内部所有不同的变量容器执行垃圾回收操作
+> 当垃圾回收机制打开时，每当根缓存区存满时，就会执行上面描述的循环查找算法。
 
 ### Trait
 
@@ -702,11 +725,13 @@ $ phpize $ ./configure $ make && make install
 
 ### yield 是什么，说个使用场景 yield、yield 核心原理是什么
 
-> 一个生成器函数看起来像一个普通的函数，不同的是普通函数返回一个值，而一个生成器可以yield生成许多它所需要的值
+> 一个生成器函数看起来像一个普通的函数，不同的是普通函数返回一个值，yield是返回一个值之后会保存当时的状态.之后再外部函数还可以传入参数进入yield的位置.从而实现协程.
 
 ### traits 与 interfaces 区别 及 traits 解决了什么痛点
 
 ### 如何 foreach 迭代对象、如何数组化操作对象 $obj[key]、如何函数化对象 $obj(123);
+
+> 实现迭代器接口即可.可以参考spl中的那些接口.
 
 ### Swoole 适用场景，协程实现方式
 
@@ -714,9 +739,13 @@ $ phpize $ ./configure $ make && make install
 
 ### PHP 数组底层实现 （HashTable + Linked list）
 
+[参考博客](https://gywbd.github.io/posts/2014/12/php7-new-hashtable-implementation.html)
+
 ### Copy on write 原理，何时 GC
 
 ### 如何解决 PHP 内存溢出问题
+
+> 这个答案我认识没有标准答案的.内存溢出非常的复杂,只有针对代码和日志进行分析研究
 
 ### ZVAL
 > https://github.com/xianyunyh/PHP-Interview/blob/master/PHP/PHP-Zval%E7%BB%93%E6%9E%84.md
@@ -994,19 +1023,26 @@ vue、react、webpack、
 ### JOIN、LEFT JOIN 、RIGHT JOIN、INNER JOIN
 
 ### UNION
+> MySQL UNION 操作符用于连接两个以上的 SELECT 语句的结果组合到一个结果集合中。多个 SELECT 语句会删除重复的数据。
 
 ### GROUP BY + COUNT + WHERE 组合案例
 
 ### 常用 MySQL 函数，如：now()、md5()、concat()、uuid()等
-
+ 不建议使用
 ### 了解触发器是什么，说个使用场景
 
 ### 常见存储引擎，有什么区别
 
 ### 常见索引？有什么特点
-
+- 按类型划分分为 主键索引 普通索引 唯一索引 全文索引(Full Text)
+- 按实现方式分就是b+树 以及 哈希索引
 ### 聚族索引与非聚族索引的区别
-
+> InnoDB的主键索引与行记录是存储在一起的，故叫做聚集索引
+> 没有单独区域存储行记录
+> 主键索引的叶子节点，存储主键，与对应行记录（而不是指针）
+>InnoDB的表必须要有唯一的聚集索引
+> MyISAM的索引与行记录是分开存储的，叫做非聚集索引
+> MyISAM的表可以没有主键
 ### 事务机制
 
 ### BTree 与 BTree-/BTree+ 索引原理
@@ -1092,7 +1128,11 @@ Slow log(有什么用，什么时候需要)
 防御的方法使用csrf的token机制进行防御.
 ### XSS 攻击
 
+js注入攻击
+
 ### SQL 注入
+
+使用参数化查询,pdo,参数过滤
 
 ### IP 地址能被伪造吗
 
@@ -1100,9 +1140,12 @@ Slow log(有什么用，什么时候需要)
 
 ### md5 逆向原理
 
+md5是不可逆的,但是可以给予彩虹表进行碰撞
+
 ### DOS 攻击
 
 ### 数据库存储用户密码时，应该是怎么做才安全
+直接使用php提供的hash_passwd函数和hash_equal函数
 
 ### 目录权限安全
 
